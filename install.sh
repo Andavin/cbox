@@ -23,3 +23,10 @@ if ! echo "$PATH" | tr ':' '\n' | grep -qx "$INSTALL_DIR"; then
 else
   echo "Installed cbox to $INSTALL_DIR/cbox"
 fi
+
+# Prompt to build Docker images
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+read -rp "Build Docker images now? [Y/n] " answer
+if [[ "${answer:-Y}" =~ ^[Yy]$ ]]; then
+  "$SCRIPT_DIR/build.sh"
+fi
