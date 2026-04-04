@@ -1,10 +1,12 @@
 # cbox
 
-Containerized Claude Code environments. Run Claude Code inside Docker with pre-configured toolchains, git credentials, and multi-agent orchestration.
+Containerized Claude Code environments. Run Claude Code inside Docker with pre-configured toolchains, git credentials, and multi-agent orchestration along with unlimited permissions.
 
 ## Why
 
 Claude Code runs commands on your machine. cbox isolates it in a Docker container with the right language toolchain, while forwarding your git credentials and GitHub token so it can still commit and push.
+
+Yes this is basically [Claude Box](https://github.com/RchGrav/claudebox) but worse. However, when I tried to use that, it wouldn't build the images so I made a simpler solution that fit my use-case exactly.
 
 ## Profiles
 
