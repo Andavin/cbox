@@ -1,9 +1,12 @@
 FROM eclipse-temurin:21-jdk-jammy
 
-# Install Node.js (required for Claude Code), Python, git, and dev tools
+# Install Node.js (required for Claude Code), Python 3.13, git, and dev tools
 RUN apt-get update && \
+    apt-get install -y software-properties-common && \
+    add-apt-repository -y ppa:deadsnakes/ppa && \
     curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
-    apt-get install -y nodejs curl git python3 python3-pip vim jq less htop procps maven gradle && \
+    apt-get install -y nodejs curl git python3.13 python3.13-venv python3-pip vim jq less htop procps maven gradle && \
+    update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.13 1 && \
     ln -sf /usr/bin/python3 /usr/bin/python && \
     # Install GitHub CLI
     curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg && \
@@ -11,6 +14,9 @@ RUN apt-get update && \
     apt-get update && apt-get install -y gh && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
+
+# Install Bazinga (multi-agent orchestration for Claude Code)
+RUN pip3 install --break-system-packages git+https://github.com/mehdic/bazinga.git
 
 # Create a non-root user
 RUN useradd -m -s /bin/bash javadev
@@ -28,13 +34,17 @@ RUN curl -fsSL https://claude.ai/install.sh | bash
 # Add Claude to PATH
 ENV PATH="/home/javadev/.local/bin:${PATH}"
 
+# Scaffold Bazinga agents and commands into .claude/
+RUN bazinga init /home/javadev
+
 # Copy Claude configuration files (CLAUDE.md, settings.json, etc.)
+# These are copied AFTER bazinga init so our config takes precedence
 # Build with: docker build -f Dockerfile.java .
 COPY --chown=root:root context/ /root/.claude/
 COPY --chown=javadev:javadev context/ /home/javadev/.claude/
 
 # Verify installations
-RUN java --version && node --version && python --version && claude --version
+RUN java --version && node --version && python --version && claude --version && bazinga --version
 
 # Set working directory
 WORKDIR /app

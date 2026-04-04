@@ -2,7 +2,7 @@ FROM node:22-slim
 
 # Install Python, git, and dev tools
 RUN apt-get update && \
-    apt-get install -y curl git python3 python3-pip vim jq less htop procps && \
+    apt-get install -y curl git python3 python3-pip python3-venv vim jq less htop procps && \
     ln -s /usr/bin/python3 /usr/bin/python && \
     # Install GitHub CLI
     curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg && \
@@ -17,6 +17,9 @@ RUN corepack enable && corepack prepare pnpm@latest --activate
 # Install Python packages for Excel support
 RUN pip3 install --break-system-packages openpyxl pandas xlrd
 
+# Install Bazinga (multi-agent orchestration for Claude Code)
+RUN pip3 install --break-system-packages git+https://github.com/mehdic/bazinga.git
+
 # Create config directory with proper ownership (before volume mount)
 RUN mkdir -p /claude-config && chown -R node:node /claude-config
 
@@ -30,13 +33,17 @@ RUN curl -fsSL https://claude.ai/install.sh | bash
 # Add Claude to PATH
 ENV PATH="/home/node/.local/bin:${PATH}"
 
+# Scaffold Bazinga agents and commands into .claude/
+RUN bazinga init /home/node
+
 # Copy Claude configuration files (CLAUDE.md, settings.json, etc.)
+# These are copied AFTER bazinga init so our config takes precedence
 # Build with: docker build -f Dockerfile.node .
 COPY --chown=root:root context/ /root/.claude/
 COPY --chown=node:node context/ /home/node/.claude/
 
 # Verify installations
-RUN node --version && pnpm --version && python --version && claude --version
+RUN node --version && pnpm --version && python --version && claude --version && bazinga --version
 
 # Set working directory
 WORKDIR /app
