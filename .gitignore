@@ -2,3 +2,7 @@
 *.swp
 *.swo
 *~
+
+# BAZINGA - Auto-generated (do not edit this section)
+bazinga/*.db*
+bazinga/artifacts/

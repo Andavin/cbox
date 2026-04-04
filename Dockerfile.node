@@ -17,8 +17,8 @@ RUN corepack enable && corepack prepare pnpm@latest --activate
 # Install Python packages for Excel support
 RUN pip3 install --break-system-packages openpyxl pandas xlrd
 
-# Install Bazinga (multi-agent orchestration for Claude Code)
-RUN pip3 install --break-system-packages git+https://github.com/mehdic/bazinga.git
+# Install uv (for Bazinga multi-agent orchestration)
+RUN curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR=/usr/local/bin sh
 
 # Create config directory with proper ownership (before volume mount)
 RUN mkdir -p /claude-config && chown -R node:node /claude-config
@@ -33,20 +33,18 @@ RUN curl -fsSL https://claude.ai/install.sh | bash
 # Add Claude to PATH
 ENV PATH="/home/node/.local/bin:${PATH}"
 
-# Scaffold Bazinga agents and commands into .claude/
-RUN bazinga init /home/node
-
 # Copy Claude configuration files (CLAUDE.md, settings.json, etc.)
-# These are copied AFTER bazinga init so our config takes precedence
 # Build with: docker build -f Dockerfile.node .
 COPY --chown=root:root context/ /root/.claude/
 COPY --chown=node:node context/ /home/node/.claude/
 
+# Copy entrypoint script
+COPY --chown=root:root entrypoint.sh /usr/local/bin/entrypoint.sh
+
 # Verify installations
-RUN node --version && pnpm --version && python --version && claude --version && bazinga --version
+RUN node --version && pnpm --version && python --version && claude --version && uv --version
 
 # Set working directory
 WORKDIR /app
 
-# Set claude-code as the default command with all permissions enabled
-ENTRYPOINT ["claude", "--dangerously-skip-permissions"]
+ENTRYPOINT ["entrypoint.sh"]

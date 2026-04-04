@@ -15,8 +15,8 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Install Bazinga (multi-agent orchestration for Claude Code)
-RUN pip3 install --break-system-packages git+https://github.com/mehdic/bazinga.git
+# Install uv (for Bazinga multi-agent orchestration)
+RUN curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR=/usr/local/bin sh
 
 # Create a non-root user
 RUN useradd -m -s /bin/bash javadev
@@ -34,20 +34,18 @@ RUN curl -fsSL https://claude.ai/install.sh | bash
 # Add Claude to PATH
 ENV PATH="/home/javadev/.local/bin:${PATH}"
 
-# Scaffold Bazinga agents and commands into .claude/
-RUN bazinga init /home/javadev
-
 # Copy Claude configuration files (CLAUDE.md, settings.json, etc.)
-# These are copied AFTER bazinga init so our config takes precedence
 # Build with: docker build -f Dockerfile.java .
 COPY --chown=root:root context/ /root/.claude/
 COPY --chown=javadev:javadev context/ /home/javadev/.claude/
 
+# Copy entrypoint script
+COPY --chown=root:root entrypoint.sh /usr/local/bin/entrypoint.sh
+
 # Verify installations
-RUN java --version && node --version && python --version && claude --version && bazinga --version
+RUN java --version && node --version && python --version && claude --version && uv --version
 
 # Set working directory
 WORKDIR /app
 
-# Set claude-code as the default command with all permissions enabled
-ENTRYPOINT ["claude", "--dangerously-skip-permissions"]
+ENTRYPOINT ["entrypoint.sh"]
