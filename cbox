@@ -24,14 +24,14 @@ path="/workspace/$(pwd)"
 
 # Extract GitHub token via git's credential system (works with any helper:
 # store, osxkeychain, manager/manager-core, etc.)
-GH_TOKEN=""
-GH_TOKEN=$(printf 'protocol=https\nhost=github.com\n' | git credential fill 2>/dev/null | sed -n 's/^password=//p') || true
+GIT_CRED_OUTPUT=$(printf 'protocol=https\nhost=github.com\n\n' | GIT_TERMINAL_PROMPT=0 git credential fill 2>/dev/null) || true
+GH_TOKEN=$(echo "$GIT_CRED_OUTPUT" | sed -n 's/^password=//p')
+GH_USER=$(echo "$GIT_CRED_OUTPUT" | sed -n 's/^username=//p')
 
 # Write credentials to a temp file for git inside the container
 GIT_CREDS_FILE=$(mktemp)
 trap 'rm -f "$GIT_CREDS_FILE"' EXIT
 if [[ -n "$GH_TOKEN" ]]; then
-  GH_USER=$(printf 'protocol=https\nhost=github.com\n' | git credential fill 2>/dev/null | sed -n 's/^username=//p') || true
   echo "https://${GH_USER:-git}:${GH_TOKEN}@github.com" > "$GIT_CREDS_FILE"
 fi
 
