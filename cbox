@@ -22,10 +22,17 @@ shift
 
 path="/workspace/$(pwd)"
 
-# Extract GitHub token from git-credentials for gh CLI auth
+# Extract GitHub token via git's credential system (works with any helper:
+# store, osxkeychain, manager/manager-core, etc.)
 GH_TOKEN=""
-if [[ -f ~/.git-credentials ]]; then
-  GH_TOKEN=$(grep 'github\.com' ~/.git-credentials | head -1 | sed 's|.*://[^:]*:\([^@]*\)@.*|\1|')
+GH_TOKEN=$(printf 'protocol=https\nhost=github.com\n' | git credential fill 2>/dev/null | sed -n 's/^password=//p') || true
+
+# Write credentials to a temp file for git inside the container
+GIT_CREDS_FILE=$(mktemp)
+trap 'rm -f "$GIT_CREDS_FILE"' EXIT
+if [[ -n "$GH_TOKEN" ]]; then
+  GH_USER=$(printf 'protocol=https\nhost=github.com\n' | git credential fill 2>/dev/null | sed -n 's/^username=//p') || true
+  echo "https://${GH_USER:-git}:${GH_TOKEN}@github.com" > "$GIT_CREDS_FILE"
 fi
 
 docker run -it --init --rm \
@@ -35,7 +42,7 @@ docker run -it --init --rm \
   $([ -d node_modules ] && echo "-v $path/node_modules") \
   -v claude_config:/claude-config \
   -v ~/.gitconfig:/root/.gitconfig:ro \
-  -v ~/.git-credentials:/root/.git-credentials:ro \
+  -v "$GIT_CREDS_FILE":/root/.git-credentials:ro \
   -e CLAUDE_CONFIG_DIR=/claude-config \
   -e IS_SANDBOX=1 \
   ${GH_TOKEN:+-e GH_TOKEN="$GH_TOKEN"} \
