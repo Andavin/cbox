@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ -z "${1:-}" ]]; then
+  echo "Usage: cbox <profile> [args...]" >&2
+  exit 1
+fi
+
+if [[ "$1" == "profiles" ]]; then
+  # NOTE: || true prevents grep exiting the script (set -e) when no matches are found
+  profiles=$(docker images --format '{{.Repository}}' | grep '^cbox-' | sed 's/^cbox-//' | sort -u || true)
+  if [[ -z "$profiles" ]]; then
+    echo "No profiles available" >&2
+  else
+    echo "$profiles"
+  fi
+  exit 0
+fi
+
+image="cbox-$1"
+shift
+
+path="/workspace/$(pwd)"
+
+# Extract GitHub token from git-credentials for gh CLI auth
+GH_TOKEN=""
+if [[ -f ~/.git-credentials ]]; then
+  GH_TOKEN=$(grep 'github\.com' ~/.git-credentials | head -1 | sed 's|.*://[^:]*:\([^@]*\)@.*|\1|')
+fi
+
+docker run -it --init --rm \
+  -u 0:0 \
+  -w "$path" \
+  -v "$(pwd)":"$path" \
+  $([ -d node_modules ] && echo "-v $path/node_modules") \
+  -v claude_config:/claude-config \
+  -v ~/.gitconfig:/root/.gitconfig:ro \
+  -v ~/.git-credentials:/root/.git-credentials:ro \
+  -e CLAUDE_CONFIG_DIR=/claude-config \
+  -e IS_SANDBOX=1 \
+  ${GH_TOKEN:+-e GH_TOKEN="$GH_TOKEN"} \
+  "$image" "$@"
