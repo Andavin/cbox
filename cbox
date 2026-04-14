@@ -42,7 +42,7 @@ docker run -it --init --rm \
   $([ -d node_modules ] && echo "-v $path/node_modules") \
   -v claude_config:/claude-config \
   -v ~/.gitconfig:/root/.gitconfig:ro \
-  -v "$GIT_CREDS_FILE":/root/.git-credentials:ro \
+  -v "$GIT_CREDS_FILE":/tmp/git-credentials-in:ro \
   -e CLAUDE_CONFIG_DIR=/claude-config \
   -e IS_SANDBOX=1 \
   ${GH_TOKEN:+-e GH_TOKEN="$GH_TOKEN"} \
