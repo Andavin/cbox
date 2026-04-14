@@ -11,6 +11,12 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
+# Trust any repo path so git doesn't complain about UID mismatches after
+# docker cp copies files in with host ownership. Safe inside an ephemeral
+# single-user container. Uses --system so the /root/.gitconfig bind mount
+# at runtime doesn't clobber it.
+RUN git config --system --add safe.directory '*'
+
 # Install pnpm (as root, globally available)
 RUN corepack enable && corepack prepare pnpm@latest --activate
 

@@ -1,8 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+copy_mode=false
+if [[ "${1:-}" == "--copy" ]]; then
+  copy_mode=true
+  shift
+fi
+
 if [[ -z "${1:-}" ]]; then
-  echo "Usage: cbox <profile> [args...]" >&2
+  echo "Usage: cbox [--copy] <profile> [args...]" >&2
   exit 1
 fi
 
@@ -30,20 +36,46 @@ GH_USER=$(echo "$GIT_CRED_OUTPUT" | sed -n 's/^username=//p')
 
 # Write credentials to a temp file for git inside the container
 GIT_CREDS_FILE=$(mktemp)
-trap 'rm -f "$GIT_CREDS_FILE"' EXIT
+container_id=""
+cleanup() {
+  rm -f "$GIT_CREDS_FILE"
+  if [[ -n "$container_id" ]]; then
+    docker rm -f "$container_id" >/dev/null 2>&1 || true
+  fi
+}
+trap cleanup EXIT
 if [[ -n "$GH_TOKEN" ]]; then
   echo "https://${GH_USER:-git}:${GH_TOKEN}@github.com" > "$GIT_CREDS_FILE"
 fi
 
-docker run -it --init --rm \
-  -u 0:0 \
-  -w "$path" \
-  -v "$(pwd)":"$path" \
-  $([ -d node_modules ] && echo "-v $path/node_modules") \
-  -v claude_config:/claude-config \
-  -v ~/.gitconfig:/root/.gitconfig:ro \
-  -v "$GIT_CREDS_FILE":/tmp/git-credentials-in:ro \
-  -e CLAUDE_CONFIG_DIR=/claude-config \
-  -e IS_SANDBOX=1 \
-  ${GH_TOKEN:+-e GH_TOKEN="$GH_TOKEN"} \
-  "$image" "$@"
+if $copy_mode; then
+  # Copy-mode: create the container without a workspace bind mount, copy
+  # the current directory into it, then start. Each instance gets an
+  # independent snapshot of the project so parallel cbox instances on
+  # different branches don't collide. Git push/pull is the sync mechanism.
+  container_id=$(docker create -it --init --rm \
+    -u 0:0 \
+    -w "$path" \
+    -v claude_config:/claude-config \
+    -v ~/.gitconfig:/root/.gitconfig:ro \
+    -v "$GIT_CREDS_FILE":/tmp/git-credentials-in:ro \
+    -e CLAUDE_CONFIG_DIR=/claude-config \
+    -e IS_SANDBOX=1 \
+    ${GH_TOKEN:+-e GH_TOKEN="$GH_TOKEN"} \
+    "$image" "$@")
+  docker cp "$(pwd)/." "$container_id:$path"
+  docker start -ai "$container_id"
+else
+  docker run -it --init --rm \
+    -u 0:0 \
+    -w "$path" \
+    -v "$(pwd)":"$path" \
+    $([ -d node_modules ] && echo "-v $path/node_modules") \
+    -v claude_config:/claude-config \
+    -v ~/.gitconfig:/root/.gitconfig:ro \
+    -v "$GIT_CREDS_FILE":/tmp/git-credentials-in:ro \
+    -e CLAUDE_CONFIG_DIR=/claude-config \
+    -e IS_SANDBOX=1 \
+    ${GH_TOKEN:+-e GH_TOKEN="$GH_TOKEN"} \
+    "$image" "$@"
+fi

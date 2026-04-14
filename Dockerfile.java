@@ -15,6 +15,12 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
+# Trust any repo path so git doesn't complain about UID mismatches after
+# docker cp copies files in with host ownership. Safe inside an ephemeral
+# single-user container. Uses --system so the /root/.gitconfig bind mount
+# at runtime doesn't clobber it.
+RUN git config --system --add safe.directory '*'
+
 # Install uv (for Bazinga multi-agent orchestration)
 RUN curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR=/usr/local/bin sh
 
