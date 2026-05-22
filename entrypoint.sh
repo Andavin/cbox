@@ -9,11 +9,6 @@ if [[ -f /tmp/git-credentials-in ]]; then
   chmod 600 /root/.git-credentials
 fi
 
-# Initialize Bazinga in the workspace if not already done
-if [[ ! -d bazinga ]]; then
-  uvx --from git+https://github.com/mehdic/bazinga.git bazinga init --here --no-git || true
-fi
-
 # Use Ctrl-a as tmux prefix to avoid conflicts with host tmux.
 # Mouse mode is off so the terminal emulator handles text selection and
 # copy natively (and to avoid tmux's right-click context menu).

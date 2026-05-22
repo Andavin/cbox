@@ -1,6 +1,6 @@
 # cbox
 
-Containerized Claude Code environments. Run Claude Code inside Docker with pre-configured toolchains, git credentials, and multi-agent orchestration along with unlimited permissions.
+Containerized Claude Code environments. Run Claude Code inside Docker with pre-configured toolchains, git credentials, and unlimited permissions.
 
 ## Why
 
@@ -17,7 +17,7 @@ Each `Dockerfile.<profile>` builds a container image with Claude Code plus a lan
 | `node` | node:22-slim | Node.js, pnpm, Python, Excel libraries |
 | `java` | eclipse-temurin:21 | JDK 21, Maven, Gradle, Node.js, Python 3.13 |
 
-All profiles include: Claude Code, GitHub CLI, [Bazinga](https://github.com/mehdic/bazinga) multi-agent orchestration, git, vim, jq, htop.
+All profiles include: Claude Code, GitHub CLI, git, vim, jq, htop.
 
 ## Install
 
