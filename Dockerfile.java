@@ -5,7 +5,7 @@ RUN apt-get update && \
     apt-get install -y software-properties-common && \
     add-apt-repository -y ppa:deadsnakes/ppa && \
     curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
-    apt-get install -y nodejs curl git python3.13 python3.13-venv python3-pip vim jq less htop procps tmux bash-completion maven gradle && \
+    apt-get install -y nodejs curl git python3.13 python3.13-venv vim jq less htop procps tmux bash-completion maven gradle && \
     update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.13 1 && \
     ln -sf /usr/bin/python3 /usr/bin/python && \
     # Install GitHub CLI
@@ -21,7 +21,7 @@ RUN apt-get update && \
 # at runtime doesn't clobber it.
 RUN git config --system --add safe.directory '*'
 
-# Install uv (for Bazinga multi-agent orchestration)
+# Install uv (fast Python package manager)
 RUN curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR=/usr/local/bin sh
 
 # Create a non-root user
