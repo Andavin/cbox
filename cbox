@@ -53,17 +53,27 @@ if $copy_mode; then
   # the current directory into it, then start. Each instance gets an
   # independent snapshot of the project so parallel cbox instances on
   # different branches don't collide. Git push/pull is the sync mechanism.
+  #
+  # Git config and credentials are copied in rather than bind-mounted:
+  # under rootless Docker, a read-only file bind mount can't be remounted
+  # read-only after a `docker cp` into a created container, so `docker
+  # start` fails with "remount-ro ... operation not permitted". Copying
+  # also matches copy-mode's independent-snapshot model.
   container_id=$(docker create -it --init --rm \
     -u 0:0 \
     -w "$path" \
     -v claude_config:/claude-config \
-    -v ~/.gitconfig:/root/.gitconfig:ro \
-    -v "$GIT_CREDS_FILE":/tmp/git-credentials-in:ro \
     -e CLAUDE_CONFIG_DIR=/claude-config \
     -e IS_SANDBOX=1 \
     ${GH_TOKEN:+-e GH_TOKEN="$GH_TOKEN"} \
     "$image" "$@")
   docker cp "$(pwd)/." "$container_id:$path"
+  if [[ -f ~/.gitconfig ]]; then
+    docker cp ~/.gitconfig "$container_id:/root/.gitconfig"
+  fi
+  if [[ -s "$GIT_CREDS_FILE" ]]; then
+    docker cp "$GIT_CREDS_FILE" "$container_id:/tmp/git-credentials-in"
+  fi
   docker start -ai "$container_id"
 else
   docker run -it --init --rm \
